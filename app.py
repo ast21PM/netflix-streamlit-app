@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 import subprocess
 import sys
 
+
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
     import matplotlib.pyplot as plt
+
 
 @st.cache_data
 def load_data():
@@ -40,6 +42,7 @@ with st.sidebar:
         (2010, 2022)
     )
     
+
     countries = df['country'].dropna().unique()
     selected_countries = st.multiselect(
         "Страны производства",
@@ -51,19 +54,29 @@ with st.sidebar:
     search_query = st.text_input("Поиск по названию")
 
 
-filtered_data = df[
-    (df['type'] == selected_type) if selected_type != 'All' else True
-] 
+filtered_data = df.copy()
+
+
+if selected_type != 'All':
+    filtered_data = filtered_data[filtered_data['type'] == selected_type]
+
+
 filtered_data = filtered_data[
-    filtered_data['release_year'].between(*year_range)
+    filtered_data['release_year'].between(year_range[0], year_range[1])
 ]
+
+
 if selected_countries:
     filtered_data = filtered_data[
         filtered_data['country'].isin(selected_countries)
     ]
+
+
 if search_query:
+
     filtered_data = filtered_data[
-        filtered_data['title'].str.contains(search_query, case=False)
+        filtered_data['title'].notna() & 
+        filtered_data['title'].str.contains(search_query, case=False, na=False)
     ]
 
 
@@ -71,16 +84,26 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Всего контента", len(filtered_data))
 with col2:
-    avg_duration = filtered_data['duration'].mean() if selected_type == 'Movie' else None
-    st.metric("Средняя длительность", f"{avg_duration:.1f} мин" if avg_duration else "N/A")
+
+    if selected_type == 'Movie' and 'duration' in filtered_data.columns:
+
+        filtered_data['duration_num'] = filtered_data['duration'].str.extract(r'(\d+)').astype(float)
+        avg_duration = filtered_data['duration_num'].mean()
+        st.metric("Средняя длительность", f"{avg_duration:.1f} мин" if pd.notna(avg_duration) else "N/A")
+    else:
+        st.metric("Средняя длительность", "N/A")
 with col3:
-    st.metric("Самый старый релиз", filtered_data['release_year'].min())
+    st.metric("Самый старый релиз", filtered_data['release_year'].min() if not filtered_data.empty else "N/A")
 
 
 st.subheader("Распределение по рейтингам")
 fig, ax = plt.subplots()
-filtered_data['rating'].value_counts().plot(kind='bar', ax=ax)
-st.pyplot(fig)
+if not filtered_data['rating'].empty:
+    filtered_data['rating'].value_counts().plot(kind='bar', ax=ax)
+    st.pyplot(fig)
+else:
+    st.write("Нет данных для отображения графика.")
+
 
 st.subheader("Таблица данных")
 st.dataframe(
@@ -93,4 +116,7 @@ st.dataframe(
 if show_stats:
     st.subheader("Дополнительная статистика")
     st.write("Топ-10 стран по производству:")
-    st.bar_chart(filtered_data['country'].value_counts().head(10))
+    if not filtered_data['country'].empty:
+        st.bar_chart(filtered_data['country'].value_counts().head(10))
+    else:
+        st.write("Нет данных для отображения статистики.")
