@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import subprocess
 import sys
+import os
 
 
 try:
@@ -14,7 +15,6 @@ except ImportError:
 @st.cache_data
 def load_data():
     try:
-
         file_path = 'data/netflix_titles.csv'
         
 
@@ -22,23 +22,26 @@ def load_data():
             st.error(f"Файл {file_path} не найден!")
             return pd.DataFrame()
             
-
-        df = pd.read_csv(
-            file_path,
-            encoding='utf-8',
-            sep=',',
-            on_bad_lines='warn'
-        )
+        df = pd.read_csv(file_path)
         
 
-        if df.empty:
-            st.error("Файл существует, но пуст!")
+        if 'country' not in df.columns:
+            df['country'] = 'Unknown'
             
         return df
         
     except Exception as e:
         st.error(f"Ошибка загрузки: {str(e)}")
         return pd.DataFrame()
+
+
+df = load_data()
+
+
+if not isinstance(df, pd.DataFrame):
+    st.error("Критическая ошибка: Не удалось инициализировать DataFrame")
+    st.stop()
+
 
 st.set_page_config(page_title="Netflix Analytics", layout="wide")
 st.title("📊 Netflix Content Analysis Dashboard")
@@ -51,21 +54,21 @@ st.markdown("""
 with st.sidebar:
     st.header("Фильтры")
     
-
-    selected_type = st.selectbox(
-        "Тип контента",
-        ['All', 'Movie', 'TV Show'],
-        index=0
-    )
+    # Инициализация параметров фильтров
+    min_year = 1940
+    max_year = 2022
     
+    if not df.empty:
+        min_year = int(df['release_year'].min()) if 'release_year' in df.columns else 1940
+        max_year = int(df['release_year'].max()) if 'release_year' in df.columns else 2022
 
-    min_year = df['release_year'].min() if not df.empty else 1940
-    max_year = df['release_year'].max() if not df.empty else 2022
     year_range = st.slider(
         "Год выпуска",
-        int(min_year), int(max_year),
-        (max(int(min_year), 2010), int(max_year))
+        min_year, max_year,
+        (max(min_year, 2010), max_year)
     )
+    
+    # Остальной код фильтров...
     
 
     countries = ['All'] + sorted(df['country'].dropna().unique().tolist()) if 'country' in df.columns else ['All']
