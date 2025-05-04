@@ -15,7 +15,7 @@ st.title("📊 Netflix Content Analysis Dashboard")
 st.markdown("""
 Анализ каталога Netflix с использованием данных из Kaggle.
 * **Источник данных:** [Netflix Movies and TV Shows](https://www.kaggle.com/datasets/shivamb/netflix-shows)
-* **Автор:** [Ваше имя]
+* **Автор:** [ast_57]
 """)
 
 
