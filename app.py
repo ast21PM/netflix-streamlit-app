@@ -14,20 +14,31 @@ except ImportError:
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv('data/netflix_titles.csv')
 
-        if 'country' not in df.columns:
-            df['country'] = 'Unknown'
+        file_path = 'data/netflix_titles.csv'
+        
+
+        if not os.path.exists(file_path):
+            st.error(f"Файл {file_path} не найден!")
+            return pd.DataFrame()
+            
+
+        df = pd.read_csv(
+            file_path,
+            encoding='utf-8',
+            sep=',',
+            on_bad_lines='warn'
+        )
+        
+
+        if df.empty:
+            st.error("Файл существует, но пуст!")
+            
         return df
+        
     except Exception as e:
-        st.error(f"Ошибка загрузки данных: {str(e)}")
+        st.error(f"Ошибка загрузки: {str(e)}")
         return pd.DataFrame()
-
-df = load_data()
-
-if df.empty:
-    st.error("Не удалось загрузить данные. Проверьте файл data/netflix_titles.csv")
-    st.stop()
 
 st.set_page_config(page_title="Netflix Analytics", layout="wide")
 st.title("📊 Netflix Content Analysis Dashboard")
