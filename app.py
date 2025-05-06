@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 
 @st.cache_data
@@ -36,6 +35,7 @@ st.markdown("""
 with st.sidebar:
     st.header("Фильтры")
     
+
     min_year = 1925
     max_year = 2022
     
@@ -107,10 +107,12 @@ st.subheader("Распределение по рейтингам")
 if not filtered_data.empty and 'rating' in filtered_data.columns:
     try:
         fig, ax = plt.subplots(figsize=(10, 6))
-        sns.countplot(data=filtered_data, x='rating', ax=ax, order=filtered_data['rating'].value_counts().index, palette="viridis")
+        ratings = filtered_data['rating'].value_counts()
+        ratings.plot(kind='bar', ax=ax, color='teal', edgecolor='black')
         ax.set_title("Распределение по рейтингам", fontsize=16, pad=10)
         ax.set_xlabel("Рейтинг", fontsize=12)
         ax.set_ylabel("Количество", fontsize=12)
+        ax.grid(True, axis='y', linestyle='--', alpha=0.7)
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
         st.pyplot(fig)
