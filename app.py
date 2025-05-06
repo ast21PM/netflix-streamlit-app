@@ -7,16 +7,24 @@ import sys
 import os
 
 
+def install_package(package):
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    except Exception as e:
+        st.error(f"Не удалось установить {package}: {str(e)}")
+
 try:
     import seaborn as sns
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "seaborn"])
+    st.warning("Устанавливаю seaborn...")
+    install_package("seaborn")
     import seaborn as sns
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
+    st.warning("Устанавливаю matplotlib...")
+    install_package("matplotlib")
     import matplotlib.pyplot as plt
 
 @st.cache_data
@@ -51,7 +59,7 @@ st.markdown("""
 with st.sidebar:
     st.header("Фильтры")
     
-
+    # Устанавливаем минимальный год как 1925, если данных нет или столбец отсутствует
     min_year = 1925
     max_year = 2022
     
@@ -120,7 +128,7 @@ with col3:
     st.metric("Самый старый релиз", release_year)
 
 st.subheader("Распределение по рейтингам")
-if not filtered_data.empty and 'rating' in filtered_data.columns:
+if not filtered_data.empty and 'rating' in df.columns:
     try:
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.countplot(data=filtered_data, x='rating', ax=ax, order=filtered_data['rating'].value_counts().index, palette="viridis")
@@ -134,3 +142,10 @@ if not filtered_data.empty and 'rating' in filtered_data.columns:
         st.warning(f"Не удалось построить график: {str(e)}")
 else:
     st.write("Нет данных для отображения графика.")
+
+st.subheader("Результаты поиска")
+if not filtered_data.empty:
+    st.write(f"Найдено {len(filtered_data)} записей")
+    st.dataframe(filtered_data)
+else:
+    st.write("Нет данных, соответствующих фильтрам.")
