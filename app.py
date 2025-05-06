@@ -2,30 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import subprocess
-import sys
 import os
-
-
-def install_package(package):
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-    except Exception as e:
-        st.error(f"Не удалось установить {package}: {str(e)}")
-
-try:
-    import seaborn as sns
-except ImportError:
-    st.warning("Устанавливаю seaborn...")
-    install_package("seaborn")
-    import seaborn as sns
-
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    st.warning("Устанавливаю matplotlib...")
-    install_package("matplotlib")
-    import matplotlib.pyplot as plt
 
 @st.cache_data
 def load_data():
@@ -59,7 +36,6 @@ st.markdown("""
 with st.sidebar:
     st.header("Фильтры")
     
-    # Устанавливаем минимальный год как 1925, если данных нет или столбец отсутствует
     min_year = 1925
     max_year = 2022
     
@@ -128,7 +104,7 @@ with col3:
     st.metric("Самый старый релиз", release_year)
 
 st.subheader("Распределение по рейтингам")
-if not filtered_data.empty and 'rating' in df.columns:
+if not filtered_data.empty and 'rating' in filtered_data.columns:
     try:
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.countplot(data=filtered_data, x='rating', ax=ax, order=filtered_data['rating'].value_counts().index, palette="viridis")
