@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-
 st.set_page_config(page_title="Netflix Analytics", layout="wide")
 
 @st.cache_data
@@ -103,6 +102,28 @@ with col2:
 with col3:
     release_year = filtered_data['release_year'].min() if not filtered_data.empty else "Нет данных"
     st.metric("Самый старый релиз", release_year)
+
+if show_stats and not filtered_data.empty:
+    st.subheader("Дополнительная статистика")
+    
+
+    type_counts = filtered_data['type'].value_counts()
+    st.write("**Распределение по типу контента:**")
+    st.write(f"- Фильмы: {type_counts.get('Movie', 0)}")
+    st.write(f"- Сериалы: {type_counts.get('TV Show', 0)}")
+    
+
+    if 'release_year' in filtered_data.columns:
+        avg_year = filtered_data['release_year'].mean()
+        st.write(f"**Средний год выпуска:** {avg_year:.1f}" if pd.notna(avg_year) else "**Средний год выпуска:** Нет данных")
+    
+
+    if 'listed_in' in filtered_data.columns:
+        genres_list = [genre.strip() for genres in filtered_data['listed_in'].dropna() for genre in genres.split(', ')]
+        genre_counts = pd.Series(genres_list).value_counts().head(5)
+        st.write("**Топ-5 жанров:**")
+        for genre, count in genre_counts.items():
+            st.write(f"- {genre}: {count}")
 
 st.subheader("Распределение по рейтингам")
 if not filtered_data.empty and 'rating' in filtered_data.columns:
