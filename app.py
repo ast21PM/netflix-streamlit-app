@@ -3,6 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+
+st.set_page_config(page_title="Netflix Analytics", layout="wide")
+
 @st.cache_data
 def load_data():
     try:
@@ -24,7 +27,6 @@ if not isinstance(df, pd.DataFrame):
     st.error("Критическая ошибка: Не удалось инициализировать DataFrame")
     st.stop()
 
-st.set_page_config(page_title="Netflix Analytics", layout="wide")
 st.title("📊 Netflix Content Analysis Dashboard")
 st.markdown("""
 Анализ каталога Netflix с использованием данных из Kaggle.
@@ -35,7 +37,6 @@ st.markdown("""
 with st.sidebar:
     st.header("Фильтры")
     
-
     min_year = 1925
     max_year = 2022
     
