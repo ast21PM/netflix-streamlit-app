@@ -106,18 +106,15 @@ with col3:
 if show_stats and not filtered_data.empty:
     st.subheader("Дополнительная статистика")
     
-
     type_counts = filtered_data['type'].value_counts()
     st.write("**Распределение по типу контента:**")
     st.write(f"- Фильмы: {type_counts.get('Movie', 0)}")
     st.write(f"- Сериалы: {type_counts.get('TV Show', 0)}")
     
-
     if 'release_year' in filtered_data.columns:
         avg_year = filtered_data['release_year'].mean()
         st.write(f"**Средний год выпуска:** {avg_year:.1f}" if pd.notna(avg_year) else "**Средний год выпуска:** Нет данных")
     
-
     if 'listed_in' in filtered_data.columns:
         genres_list = [genre.strip() for genres in filtered_data['listed_in'].dropna() for genre in genres.split(', ')]
         genre_counts = pd.Series(genres_list).value_counts().head(5)
@@ -146,6 +143,42 @@ else:
 st.subheader("Результаты поиска")
 if not filtered_data.empty:
     st.write(f"Найдено {len(filtered_data)} записей")
-    st.dataframe(filtered_data)
+    
+    if 'selected_title' not in st.session_state:
+        st.session_state.selected_title = None
+
+    selected_row = st.dataframe(
+        filtered_data,
+        on_select="rerun",
+        selection_mode="single-row",
+        use_container_width=True
+    )
+
+    if selected_row['selection']['rows']:
+        selected_index = selected_row['selection']['rows'][0]
+        st.session_state.selected_title = filtered_data.iloc[selected_index]['title']
+
+    if st.session_state.selected_title:
+        st.subheader(f"Детали: {st.session_state.selected_title}")
+        selected_data = filtered_data[filtered_data['title'] == st.session_state.selected_title].iloc[2]
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown(f"**Название:** {selected_data.get('title', 'Нет данных')}")
+            st.markdown(f"**Тип:** {selected_data.get('type', 'Нет данных')}")
+            st.markdown(f"**Описание:** {selected_data.get('description', 'Нет данных')}")
+            st.markdown(f"**Жанры:** {selected_data.get('listed_in', 'Нет данных')}")
+            st.markdown(f"**Актеры:** {selected_data.get('cast', 'Нет данных')}")
+            st.markdown(f"**Режиссер:** {selected_data.get('director', 'Нет данных')}")
+        with col2:
+            st.markdown(f"**Год выпуска:** {selected_data.get('release_year', 'Нет данных')}")
+            st.markdown(f"**Рейтинг:** {selected_data.get('rating', 'Нет данных')}")
+            st.markdown(f"**Продолжительность:** {selected_data.get('duration', 'Нет данных')}")
+            st.markdown(f"**Страна:** {selected_data.get('country', 'Нет данных')}")
+        
+        if st.button("Вернуться к списку"):
+            st.session_state.selected_title = None
+            st.rerun()
+
 else:
     st.write("Нет данных, соответствующих фильтрам.")
