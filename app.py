@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+from io import StringIO
 
 st.set_page_config(page_title="Netflix Analytics", layout="wide")
 
@@ -58,6 +59,9 @@ with st.sidebar:
 
     selected_type = st.selectbox("Тип контента", options=['All', 'Movie', 'TV Show'])
     
+    genres = ['All'] + sorted(set([genre.strip() for genres in df['listed_in'].dropna() for genre in genres.split(',')]))
+    selected_genres = st.multiselect("Жанры", options=genres, default=['All'])
+    
     show_stats = st.checkbox("Показать статистику")
     search_query = st.text_input("Поиск по названию")
 
@@ -73,6 +77,9 @@ try:
     
     if 'All' not in selected_countries and 'country' in filtered_data.columns:
         filtered_data = filtered_data[filtered_data['country'].isin(selected_countries)]
+    
+    if 'All' not in selected_genres and 'listed_in' in filtered_data.columns:
+        filtered_data = filtered_data[filtered_data['listed_in'].str.contains('|'.join(selected_genres), case=False, na=False)]
     
     if search_query and 'title' in filtered_data.columns:
         filtered_data = filtered_data[
@@ -95,7 +102,13 @@ with col2:
             st.metric("Средняя длительность", f"{avg_duration:.1f} мин" if pd.notna(avg_duration) else "Нет данных")
         except Exception as e:
             st.metric("Средняя длительность", "Нет данных")
-            st.warning(f"Ошибка при расчете: {str(e)}")
+    elif selected_type == 'TV Show' and 'duration' in filtered_data.columns:
+        try:
+            seasons = filtered_data['duration'].str.extract(r'(\d+)')[0].astype(float)
+            avg_seasons = seasons.mean()
+            st.metric("Среднее кол-во сезонов", f"{avg_seasons:.1f}" if pd.notna(avg_seasons) else "Нет данных")
+        except Exception as e:
+            st.metric("Среднее кол-во сезонов", "Нет данных")
     else:
         st.metric("Средняя длительность", "Не применимо")
 
@@ -106,24 +119,35 @@ with col3:
 if show_stats and not filtered_data.empty:
     st.subheader("Дополнительная статистика")
     
-
     type_counts = filtered_data['type'].value_counts()
     st.write("**Распределение по типу контента:**")
     st.write(f"- Фильмы: {type_counts.get('Movie', 0)}")
     st.write(f"- Сериалы: {type_counts.get('TV Show', 0)}")
     
-
     if 'release_year' in filtered_data.columns:
         avg_year = filtered_data['release_year'].mean()
         st.write(f"**Средний год выпуска:** {avg_year:.1f}" if pd.notna(avg_year) else "**Средний год выпуска:** Нет данных")
     
-
     if 'listed_in' in filtered_data.columns:
-        genres_list = [genre.strip() for genres in filtered_data['listed_in'].dropna() for genre in genres.split(', ')]
-        genre_counts = pd.Series(genres_list).value_counts().head(5)
-        st.write("**Топ-5 жанров:**")
+        genres_list = [genre.strip() for genres in filtered_data['listed_in'].dropna() for genre in genres.split(',')]
+        genre_counts = pd.Series(genres_list).value_counts().head(1)
+        st.write("**Самый популярный жанр:**")
         for genre, count in genre_counts.items():
             st.write(f"- {genre}: {count}")
+
+st.subheader("Распределение по годам выпуска")
+if not filtered_data.empty and 'release_year' in filtered_data.columns:
+    try:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        filtered_data['release_year'].value_counts().sort_index().plot(kind='line', ax=ax, color='teal')
+        ax.set_title("Количество релизов по годам", fontsize=16, pad=10)
+        ax.set_xlabel("Год", fontsize=12)
+        ax.set_ylabel("Количество", fontsize=12)
+        ax.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        st.pyplot(fig)
+    except Exception as e:
+        st.warning(f"Не удалось построить график: {str(e)}")
 
 st.subheader("Распределение по рейтингам")
 if not filtered_data.empty and 'rating' in filtered_data.columns:
@@ -140,12 +164,18 @@ if not filtered_data.empty and 'rating' in filtered_data.columns:
         st.pyplot(fig)
     except Exception as e:
         st.warning(f"Не удалось построить график: {str(e)}")
-else:
-    st.write("Нет данных для отображения графика.")
 
 st.subheader("Результаты поиска")
 if not filtered_data.empty:
     st.write(f"Найдено {len(filtered_data)} записей")
     st.dataframe(filtered_data)
+    
+    csv = filtered_data.to_csv(index=False)
+    st.download_button(
+        label="Скачать отфильтрованные данные (CSV)",
+        data=csv,
+        file_name="netflix_filtered_data.csv",
+        mime="text/csv"
+    )
 else:
     st.write("Нет данных, соответствующих фильтрам.")
